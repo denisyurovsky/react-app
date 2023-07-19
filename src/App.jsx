@@ -1,47 +1,52 @@
-import { useState, useMemo } from "react";
-import { Counter } from "./components/Counter";
-import { PostList } from "./components/PostList";
-import { PostForm } from "./components/PostForm";
-import { PostFilter } from "./components/PostFilter";
-import { MyModal } from "./UI/MyModal/MyModal";
+import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { AboutPage } from "./pages/About";
+import { Posts } from "./pages/Posts";
 import { MyButton } from "./UI/MyButton/MyButton";
+import { Post } from "./pages/Post";
+import { Login } from "./pages/Login";
+import { createContext, useEffect, useState } from "react";
+export const AuthContext = createContext(null);
 
 function App() {
-  const [posts, setPosts] = useState([{id: 0, body: 'js luchshiy yazik', title: 'js'}, {id: 1, body: 'go luchshiy yazik', title: 'go'}])
+ const [isAuth,setIsAuth] = useState(false);
+ const navigate = useNavigate();
 
- const createPost = (post) => {
-  setPosts([...posts, {id: Math.random(), ...post}])
-  setModal(false)
- }
-
- const removePost = (post) => {
-  setPosts(posts.filter((p) => p.id !== post.id))
- }
-const [filter,setFilter] = useState({sort: '', searchQuery: ''})
-const [modal, setModal] = useState(false)
-
- const sortedPosts =useMemo(() => {
-  if (filter.sort) {
-    return [...posts.sort((a,b) => a[filter.sort].localeCompare(b[filter.sort]))]
+ useEffect(() => {
+  if (localStorage.getItem('auth')) {
+    setIsAuth(true);
   }
-  return posts
- }, [posts, filter.sort])
+ })
 
- const sortedAndSearchedPosts = useMemo(() => {
-  return sortedPosts.filter(post => post.title.toLowerCase().includes(filter.searchQuery.toLowerCase()))
- }, [filter.searchQuery, sortedPosts])
+ const logout = () => {
+  setIsAuth(false);
+  localStorage.removeItem('auth')
+  navigate('/login')
+ }
 
   return (
+    <AuthContext.Provider value={{isAuth, setIsAuth}}>
     <div className="App">
-      <MyButton onClick={() => setModal(true)}>Создать пост</MyButton>
-      <MyModal visible={modal} setVisible={setModal}>
-        <PostForm create={createPost}/>
-      </MyModal>
-     <Counter />
-    <PostFilter filter={filter} setFilter={setFilter} />
-     <PostList remove={removePost} posts={sortedAndSearchedPosts}/>
-
+      {isAuth && <>
+      <div>
+        <MyButton><Link to="about">About</Link></MyButton>
+        <MyButton><Link to="posts">Posts</Link></MyButton>
+        <MyButton onClick={() => logout()}>Выйти</MyButton>
+      </div>
+      </>}
+      <Routes>
+        {isAuth ? 
+        <>
+        <Route path="/about" Component={AboutPage} />
+        <Route exact path="/posts" Component={Posts} />
+        <Route path="/posts/:id" Component={Post} />
+        </>:
+                <Route path="/" element={<Navigate to="/login" />}/>
+        }
+      <Route path="/login" Component={Login} />
+      <Route path="*" element={<div>Page not found :(</div>} />
+      </Routes>
     </div>
+    </AuthContext.Provider>
   );
 }
 
